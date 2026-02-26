@@ -15,7 +15,7 @@ export async function processJob(jobId: string): Promise<void> {
   });
 
   try {
-    const provider = getProvider(job.template.provider);
+    const provider = getProvider(job.template.provider, job.template.modelName);
     const storage = getStorage();
 
     const isSampleBatch = job.jobType === "SAMPLE_BATCH";

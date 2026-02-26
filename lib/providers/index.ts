@@ -1,11 +1,13 @@
 import type { ImageProvider } from "./types";
 import { MockProvider } from "./mock-provider";
+import { VertexAIProvider } from "./vertex-ai-provider";
 
-export function getProvider(providerName: string): ImageProvider {
+export function getProvider(providerName: string, modelName?: string): ImageProvider {
   switch (providerName) {
     case "mock":
       return new MockProvider();
-    // Phase 2: case "vertex-imagen": return new VertexAIProvider();
+    case "vertex-imagen":
+      return new VertexAIProvider(modelName);
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
