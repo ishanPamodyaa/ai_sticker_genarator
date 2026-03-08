@@ -1,4 +1,5 @@
 import { Storage } from "@google-cloud/storage";
+import { SIGNED_URL_TTL_MINUTES } from "@/lib/constants";
 import type { StorageProvider } from "./types";
 
 export class GCSStorageProvider implements StorageProvider {
@@ -8,13 +9,12 @@ export class GCSStorageProvider implements StorageProvider {
   constructor() {
     const bucketName = process.env.GCS_BUCKET_NAME;
     if (!bucketName) {
-      throw new Error("GCS_BUCKET_NAME environment variable is required for GCS storage");
+      throw new Error(
+        "GCS_BUCKET_NAME environment variable is required for GCS storage"
+      );
     }
 
     this.bucketName = bucketName;
-
-    // Uses Application Default Credentials (ADC) or
-    // GOOGLE_APPLICATION_CREDENTIALS env var pointing to a service account key
     this.storage = new Storage();
   }
 
@@ -25,7 +25,7 @@ export class GCSStorageProvider implements StorageProvider {
     await file.save(buffer, {
       contentType: "image/png",
       metadata: {
-        cacheControl: "public, max-age=31536000",
+        cacheControl: "private, max-age=3600",
       },
     });
 
@@ -46,12 +46,23 @@ export class GCSStorageProvider implements StorageProvider {
       await file.delete();
     } catch (err) {
       const error = err as { code?: number };
-      // Ignore 404 (file doesn't exist)
       if (error.code !== 404) throw err;
     }
   }
 
-  getPublicUrl(relativePath: string): string {
-    return `https://storage.googleapis.com/${this.bucketName}/${relativePath}`;
+  async getSignedUrl(
+    relativePath: string,
+    ttlMinutes: number = SIGNED_URL_TTL_MINUTES
+  ): Promise<string> {
+    const bucket = this.storage.bucket(this.bucketName);
+    const file = bucket.file(relativePath);
+
+    const [url] = await file.getSignedUrl({
+      version: "v4",
+      action: "read",
+      expires: Date.now() + ttlMinutes * 60 * 1000,
+    });
+
+    return url;
   }
 }

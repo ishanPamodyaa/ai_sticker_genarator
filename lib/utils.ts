@@ -12,8 +12,11 @@ export function formatDate(date: Date): string {
   }).format(date);
 }
 
-export function getImageUrl(imageId: string): string {
-  return `/api/images/${imageId}`;
+export function buildFullPrompt(
+  basePrompt: string,
+  subjectPrompt: string
+): string {
+  return `${basePrompt}\n\nSubject: ${subjectPrompt}`;
 }
 
 export function truncate(str: string, maxLength: number): string {

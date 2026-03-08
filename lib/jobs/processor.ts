@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getProvider } from "@/lib/providers";
 import { getStorage } from "@/lib/storage";
+import { buildFullPrompt } from "@/lib/utils";
 
 export async function processJob(jobId: string): Promise<void> {
   const job = await prisma.generationJob.findUniqueOrThrow({
@@ -21,13 +22,20 @@ export async function processJob(jobId: string): Promise<void> {
     const isSampleBatch = job.jobType === "SAMPLE_BATCH";
     const sampleCount = isSampleBatch ? job.template.sampleCount : 1;
 
+    // Build the prompt: for samples use basePrompt directly,
+    // for client generation prepend basePrompt + subject
+    const prompt = isSampleBatch
+      ? job.template.basePrompt
+      : job.subjectPrompt
+        ? buildFullPrompt(job.template.basePrompt, job.subjectPrompt)
+        : job.template.basePrompt;
+
     const result = await provider.generate({
-      prompt: job.template.prompt,
+      prompt,
       negativePrompt: job.template.negativePrompt ?? undefined,
       width: job.template.width,
       height: job.template.height,
       sampleCount,
-      configJson: (job.template.configJson as Record<string, unknown>) ?? undefined,
     });
 
     const imageIds: string[] = [];
@@ -38,19 +46,20 @@ export async function processJob(jobId: string): Promise<void> {
 
       await storage.save(img.imageBuffer, storagePath);
 
-      await prisma.imageAsset.create({
+      await prisma.generatedImage.create({
         data: {
           id: imageId,
           type: isSampleBatch ? "SAMPLE" : "GENERATED",
           templateId: job.templateId,
           sourceSampleId: job.sampleId ?? null,
           createdById: job.requestedById ?? null,
+          subjectPrompt: job.subjectPrompt ?? null,
+          fullPromptUsed: prompt,
           provider: result.provider,
           modelName: result.modelName,
-          promptUsed: job.template.prompt,
-          negativePromptUsed: job.template.negativePrompt,
           seed: img.seed ?? null,
-          settingsJson: (img.metadata as Record<string, string>) ?? undefined,
+          width: job.template.width,
+          height: job.template.height,
           gcsPath: storagePath,
         },
       });

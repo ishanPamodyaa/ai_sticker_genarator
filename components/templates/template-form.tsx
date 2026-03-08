@@ -1,38 +1,27 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
-import { PROVIDER_OPTIONS, ALLOWED_SIZES, DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_SAMPLE_COUNT } from "@/lib/constants";
-import type { TemplateActionState } from "@/app/_actions/template.actions";
-
-function SubmitButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Saving..." : label}
-    </Button>
-  );
-}
-
-function FieldError({ errors }: { errors?: string[] }) {
-  if (!errors || errors.length === 0) return null;
-  return (
-    <p className="text-sm text-destructive mt-1">{errors[0]}</p>
-  );
-}
+import {
+  PROVIDER_OPTIONS,
+  ALLOWED_SIZES,
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+  DEFAULT_SAMPLE_COUNT,
+} from "@/lib/constants";
 
 interface TemplateFormProps {
-  action: (prevState: TemplateActionState, formData: FormData) => Promise<TemplateActionState>;
+  templateId?: string;
   defaultValues?: {
     name?: string;
     description?: string;
     provider?: string;
     modelName?: string;
-    prompt?: string;
+    basePrompt?: string;
     negativePrompt?: string;
     width?: number;
     height?: number;
@@ -44,17 +33,78 @@ interface TemplateFormProps {
 }
 
 export function TemplateForm({
-  action,
+  templateId,
   defaultValues,
   submitLabel = "Create Template",
 }: TemplateFormProps) {
-  const [state, formAction] = useActionState(action, { errors: {} });
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [isPending, setIsPending] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setFieldErrors({});
+    setIsPending(true);
+
+    const formData = new FormData(e.currentTarget);
+    const tagsRaw = formData.get("tags") as string;
+    const tags = tagsRaw
+      ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean)
+      : [];
+
+    const body = {
+      name: formData.get("name") as string,
+      description: (formData.get("description") as string) || undefined,
+      provider: formData.get("provider") as string,
+      modelName: formData.get("modelName") as string,
+      basePrompt: formData.get("basePrompt") as string,
+      negativePrompt: (formData.get("negativePrompt") as string) || undefined,
+      width: Number(formData.get("width")),
+      height: Number(formData.get("height")),
+      sampleCount: Number(formData.get("sampleCount")),
+      status: formData.get("status") as string,
+      tags,
+    };
+
+    try {
+      const url = templateId
+        ? `/api/admin/templates/${templateId}`
+        : "/api/admin/templates";
+      const method = templateId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.details) {
+          setFieldErrors(data.details);
+        }
+        setError(data.error || "Something went wrong");
+        return;
+      }
+
+      const id = templateId || data.data.id;
+      router.push(`/admin/templates/${id}`);
+      router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   return (
-    <form action={formAction} className="space-y-6 max-w-2xl">
-      {state.message && (
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      {error && (
         <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {state.message}
+          {error}
         </div>
       )}
 
@@ -67,9 +117,11 @@ export function TemplateForm({
           name="name"
           defaultValue={defaultValues?.name}
           placeholder="My Sticker Template"
-          error={!!state.errors?.name}
+          error={!!fieldErrors.name}
         />
-        <FieldError errors={state.errors?.name} />
+        {fieldErrors.name && (
+          <p className="text-sm text-destructive mt-1">{fieldErrors.name[0]}</p>
+        )}
       </div>
 
       <div>
@@ -94,7 +146,7 @@ export function TemplateForm({
             id="provider"
             name="provider"
             defaultValue={defaultValues?.provider ?? "mock"}
-            error={!!state.errors?.provider}
+            error={!!fieldErrors.provider}
           >
             {PROVIDER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -102,7 +154,9 @@ export function TemplateForm({
               </option>
             ))}
           </Select>
-          <FieldError errors={state.errors?.provider} />
+          {fieldErrors.provider && (
+            <p className="text-sm text-destructive mt-1">{fieldErrors.provider[0]}</p>
+          )}
         </div>
 
         <div>
@@ -114,24 +168,31 @@ export function TemplateForm({
             name="modelName"
             defaultValue={defaultValues?.modelName ?? "mock-v1"}
             placeholder="e.g. mock-v1"
-            error={!!state.errors?.modelName}
+            error={!!fieldErrors.modelName}
           />
-          <FieldError errors={state.errors?.modelName} />
+          {fieldErrors.modelName && (
+            <p className="text-sm text-destructive mt-1">{fieldErrors.modelName[0]}</p>
+          )}
         </div>
       </div>
 
       <div>
-        <label htmlFor="prompt" className="block text-sm font-medium mb-1.5">
-          Prompt *
+        <label htmlFor="basePrompt" className="block text-sm font-medium mb-1.5">
+          Base Prompt (style only — no subject) *
         </label>
         <Textarea
-          id="prompt"
-          name="prompt"
-          defaultValue={defaultValues?.prompt}
-          placeholder="A cute cat sticker, bold outline, minimal background..."
+          id="basePrompt"
+          name="basePrompt"
+          defaultValue={defaultValues?.basePrompt}
+          placeholder="A cute kawaii sticker, bold black outline, chibi style, vibrant colors..."
           rows={4}
         />
-        <FieldError errors={state.errors?.prompt} />
+        <p className="text-xs text-muted-foreground mt-1">
+          Describe the art style. The client will add their own subject (e.g., &quot;a happy corgi&quot;).
+        </p>
+        {fieldErrors.basePrompt && (
+          <p className="text-sm text-destructive mt-1">{fieldErrors.basePrompt[0]}</p>
+        )}
       </div>
 
       <div>
@@ -225,7 +286,9 @@ export function TemplateForm({
       </div>
 
       <div className="flex gap-3 pt-4">
-        <SubmitButton label={submitLabel} />
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving..." : submitLabel}
+        </Button>
       </div>
     </form>
   );

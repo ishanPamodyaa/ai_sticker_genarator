@@ -26,8 +26,12 @@ export class LocalStorageProvider implements StorageProvider {
     try {
       await fs.unlink(fullPath);
     } catch (err) {
-      // Ignore if file doesn't exist
       if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     }
+  }
+
+  async getSignedUrl(relativePath: string): Promise<string> {
+    // In local dev, serve images via API route
+    return `/api/images/local/${relativePath}`;
   }
 }

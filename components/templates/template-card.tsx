@@ -9,7 +9,7 @@ interface TemplateCardProps {
     name: string;
     status: "DRAFT" | "ACTIVE" | "DISABLED";
     provider: string;
-    prompt: string;
+    basePrompt: string;
     tags: string[];
     _count: { images: number; jobs: number };
   };
@@ -27,7 +27,7 @@ export function TemplateCard({ template }: TemplateCardProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
-            {truncate(template.prompt, 120)}
+            {truncate(template.basePrompt, 120)}
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>Provider: {template.provider}</span>

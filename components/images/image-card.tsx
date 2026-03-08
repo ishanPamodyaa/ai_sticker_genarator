@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { getImageUrl } from "@/lib/utils";
 
 interface ImageCardProps {
   image: {
     id: string;
+    imageUrl?: string;
     seed?: string | null;
     createdAt: Date;
   };
@@ -12,12 +12,14 @@ interface ImageCardProps {
 }
 
 export function ImageCard({ image, showGenerateButton }: ImageCardProps) {
+  const src = image.imageUrl || `/api/images/${image.id}`;
+
   return (
     <Card className="overflow-hidden group">
       <div className="relative aspect-square">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={getImageUrl(image.id)}
+          src={src}
           alt="Generated sticker"
           className="w-full h-full object-cover"
           loading="lazy"
@@ -25,10 +27,10 @@ export function ImageCard({ image, showGenerateButton }: ImageCardProps) {
         {showGenerateButton && (
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <Link
-              href={`/generate/${image.id}`}
+              href={`/client/generate/${image.id}`}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Generate Similar
+              Generate Sticker
             </Link>
           </div>
         )}

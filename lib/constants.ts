@@ -4,6 +4,8 @@ export const DEFAULT_HEIGHT = 1024;
 export const DEFAULT_SAMPLE_COUNT = 4;
 export const ALLOWED_SIZES = [512, 768, 1024] as const;
 export const JOB_POLL_INTERVAL_MS = 2000;
+export const DAILY_GENERATION_LIMIT = 20;
+export const SIGNED_URL_TTL_MINUTES = 60;
 
 export const PROVIDER_OPTIONS = [
   { value: "mock", label: "Mock Provider" },

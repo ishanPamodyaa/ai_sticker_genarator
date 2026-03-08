@@ -3,6 +3,7 @@ import { ImageCard } from "./image-card";
 interface ImageGridProps {
   images: Array<{
     id: string;
+    imageUrl?: string;
     seed?: string | null;
     createdAt: Date;
   }>;

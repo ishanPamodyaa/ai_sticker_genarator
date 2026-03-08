@@ -2,29 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/lib/storage";
 
+// GET /api/images/[id] — return signed URL for an image
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
 
-  const image = await prisma.imageAsset.findUnique({ where: { id } });
+  const image = await prisma.generatedImage.findUnique({ where: { id } });
   if (!image || image.status === "DELETED") {
-    return new NextResponse("Not found", { status: 404 });
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   try {
     const storage = getStorage();
-    const buffer = await storage.getBuffer(image.gcsPath);
+    const imageUrl = await storage.getSignedUrl(image.gcsPath);
 
-    return new NextResponse(new Uint8Array(buffer), {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=31536000, immutable",
-        "Content-Length": String(buffer.length),
+    return NextResponse.json({
+      data: {
+        id: image.id,
+        imageUrl,
+        width: image.width,
+        height: image.height,
+        type: image.type,
       },
     });
   } catch {
-    return new NextResponse("Image not found on storage", { status: 404 });
+    return NextResponse.json(
+      { error: "Image not found on storage" },
+      { status: 404 }
+    );
   }
 }

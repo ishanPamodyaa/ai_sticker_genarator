@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { JOB_POLL_INTERVAL_MS } from "@/lib/constants";
-import { getImageUrl } from "@/lib/utils";
 
 interface JobProgressProps {
   jobId: string;
@@ -19,6 +18,7 @@ interface JobStatusData {
 export function JobProgress({ jobId }: JobProgressProps) {
   const [job, setJob] = useState<JobStatusData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -33,6 +33,13 @@ export function JobProgress({ jobId }: JobProgressProps) {
 
         if (data.status === "QUEUED" || data.status === "RUNNING") {
           setTimeout(poll, JOB_POLL_INTERVAL_MS);
+        } else if (data.status === "SUCCESS" && data.resultImageId) {
+          // Fetch signed URL for the result image
+          const imgRes = await fetch(`/api/images/${data.resultImageId}`);
+          if (imgRes.ok) {
+            const imgData = await imgRes.json();
+            if (active) setImageUrl(imgData.data.imageUrl);
+          }
         }
       } catch (err) {
         if (!active) return;
@@ -84,18 +91,18 @@ export function JobProgress({ jobId }: JobProgressProps) {
   // SUCCESS
   return (
     <div className="flex flex-col items-center gap-4 py-4">
-      {job.resultImageId && (
+      {imageUrl && (
         <>
           <div className="rounded-lg overflow-hidden border shadow-lg max-w-md">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={getImageUrl(job.resultImageId)}
+              src={imageUrl}
               alt="Generated sticker"
               className="w-full h-auto"
             />
           </div>
           <a
-            href={getImageUrl(job.resultImageId)}
+            href={imageUrl}
             download="sticker.png"
             className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >

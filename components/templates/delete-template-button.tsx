@@ -1,12 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { deleteTemplate } from "@/app/_actions/template.actions";
 
 export function DeleteTemplateButton({ templateId }: { templateId: string }) {
   const [confirming, setConfirming] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
+  const router = useRouter();
+
+  const handleDelete = async () => {
+    setIsPending(true);
+    try {
+      const res = await fetch(`/api/admin/templates/${templateId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        router.push("/admin/templates");
+        router.refresh();
+      }
+    } catch {
+      setIsPending(false);
+    }
+  };
 
   if (!confirming) {
     return (
@@ -23,9 +39,7 @@ export function DeleteTemplateButton({ templateId }: { templateId: string }) {
         variant="destructive"
         size="sm"
         disabled={isPending}
-        onClick={() => {
-          startTransition(() => deleteTemplate(templateId));
-        }}
+        onClick={handleDelete}
       >
         {isPending ? "Deleting..." : "Yes, Delete"}
       </Button>
