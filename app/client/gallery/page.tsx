@@ -41,12 +41,12 @@ export default async function GalleryPage() {
       </div>
 
       {samplesWithUrls.length === 0 ? (
-        <div className="glass-card rounded-2xl p-16 text-center text-muted-foreground max-w-xl mx-auto">
+        <div className="glass-card rounded-2xl p-16 text-center text-muted-foreground max-w-xl mx-auto relative z-10">
           <p className="text-xl font-medium mb-2 text-foreground">No stickers available yet.</p>
           <p className="text-base opacity-80">Check back soon or ask an admin to create templates.</p>
         </div>
       ) : (
-        <div className="animate-slide-up">
+        <div className="animate-slide-up relative z-10">
           <ImageGrid images={samplesWithUrls} showGenerateButton />
         </div>
       )}

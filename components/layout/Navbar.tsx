@@ -1,8 +1,12 @@
 import Link from "next/link";
-import { Sparkles, Image as ImageIcon } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
+import { LogoutButton } from "@/components/auth/logout-button";
 
-export function Navbar() {
+export async function Navbar() {
+  const session = await auth();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 glass">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
@@ -15,26 +19,41 @@ export function Navbar() {
           </span>
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-          <Link href="/#features" className="text-muted-foreground hover:text-foreground transition-colors">
-            Features
-          </Link>
           <Link href="/client/gallery" className="text-muted-foreground hover:text-foreground transition-colors">
             Gallery
           </Link>
-          <Link href="/admin/templates" className="text-muted-foreground hover:text-foreground transition-colors">
-            Admin
-          </Link>
+          {session && (
+            <Link href="/client/history" className="text-muted-foreground hover:text-foreground transition-colors">
+              My History
+            </Link>
+          )}
+          {session?.user.role === "ADMIN" && (
+            <Link href="/admin/templates" className="text-muted-foreground hover:text-foreground transition-colors">
+              Admin
+            </Link>
+          )}
         </nav>
         <div className="flex items-center gap-4">
-          <Link href="/login" className="hidden sm:inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Log in
-          </Link>
-          <Link href="/client/generation">
-            <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white shadow-lg shadow-violet-500/25 border-0 rounded-full px-6 transition-all hover:scale-105 pr-5">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate
-            </Button>
-          </Link>
+          {session ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground hidden sm:inline-block">
+                {session.user.email}
+              </span>
+              <LogoutButton />
+            </div>
+          ) : (
+            <>
+              <Link href="/login" className="hidden sm:inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Log in
+              </Link>
+              <Link href="/client/generation">
+                <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white shadow-lg shadow-violet-500/25 border-0 rounded-full px-6 transition-all hover:scale-105 pr-5">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

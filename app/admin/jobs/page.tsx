@@ -45,8 +45,11 @@ export default async function JobsPage({
   ];
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Jobs</h1>
+    <div className="max-w-6xl mx-auto">
+      <div className="mb-8 relative z-10">
+        <h1 className="text-3xl font-extrabold tracking-tight">Active <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">Jobs</span></h1>
+        <p className="text-muted-foreground mt-2">Monitor system-wide sticker generation tasks</p>
+      </div>
 
       {/* Status filter tabs */}
       <div className="flex gap-2 mb-6">
@@ -57,10 +60,10 @@ export default async function JobsPage({
             <Link
               key={f.label}
               href={href}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
+                  ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25 border border-transparent"
+                  : "bg-white/5 border border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10"
               }`}
             >
               {f.label}
@@ -71,52 +74,56 @@ export default async function JobsPage({
       </div>
 
       {jobs.length === 0 ? (
-        <p className="text-muted-foreground">No jobs found.</p>
+        <div className="glass-card rounded-2xl p-16 text-center text-muted-foreground max-w-xl mx-auto">
+          <p className="text-lg font-medium text-foreground mb-2">No jobs found.</p>
+        </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="py-3 pr-4 font-medium text-muted-foreground">Status</th>
-                <th className="py-3 pr-4 font-medium text-muted-foreground">Type</th>
-                <th className="py-3 pr-4 font-medium text-muted-foreground">Template</th>
-                <th className="py-3 pr-4 font-medium text-muted-foreground">Requested By</th>
-                <th className="py-3 pr-4 font-medium text-muted-foreground">Created</th>
-                <th className="py-3 pr-4 font-medium text-muted-foreground">Error</th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((job) => (
-                <tr key={job.id} className="border-b">
-                  <td className="py-3 pr-4">
-                    <JobStatusBadge status={job.status} />
-                  </td>
-                  <td className="py-3 pr-4">
-                    <Badge variant={job.jobType === "SAMPLE_BATCH" ? "default" : "active"}>
-                      {job.jobType === "SAMPLE_BATCH" ? "Samples" : "Client"}
-                    </Badge>
-                  </td>
-                  <td className="py-3 pr-4">
-                    <Link
-                      href={`/admin/templates/${job.template.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {job.template.name}
-                    </Link>
-                  </td>
-                  <td className="py-3 pr-4 text-muted-foreground">
-                    {job.requestedBy?.email || "\u2014"}
-                  </td>
-                  <td className="py-3 pr-4 text-muted-foreground">
-                    {formatDate(job.createdAt)}
-                  </td>
-                  <td className="py-3 pr-4 text-destructive text-xs max-w-xs truncate">
-                    {job.error || "\u2014"}
-                  </td>
+        <div className="glass-card rounded-2xl border-none shadow-2xl bg-gradient-to-b from-white/5 to-transparent overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-left bg-white/5">
+                  <th className="py-4 pl-6 pr-4 font-semibold text-muted-foreground">Status</th>
+                  <th className="py-4 pr-4 font-semibold text-muted-foreground">Type</th>
+                  <th className="py-4 pr-4 font-semibold text-muted-foreground">Template</th>
+                  <th className="py-4 pr-4 font-semibold text-muted-foreground">Requested By</th>
+                  <th className="py-4 pr-4 font-semibold text-muted-foreground">Created</th>
+                  <th className="py-4 pr-6 font-semibold text-muted-foreground">Error</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+            </thead>
+              <tbody>
+                {jobs.map((job) => (
+                  <tr key={job.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="py-4 pl-6 pr-4">
+                      <JobStatusBadge status={job.status} />
+                    </td>
+                    <td className="py-4 pr-4">
+                      <Badge variant={job.jobType === "SAMPLE_BATCH" ? "default" : "active"} className="bg-white/10 hover:bg-white/20 text-white border-0">
+                        {job.jobType === "SAMPLE_BATCH" ? "Samples" : "Client"}
+                      </Badge>
+                    </td>
+                    <td className="py-4 pr-4">
+                      <Link
+                        href={`/admin/templates/${job.template.id}`}
+                        className="text-fuchsia-400 hover:text-fuchsia-300 transition-colors hover:underline font-medium"
+                      >
+                        {job.template.name}
+                      </Link>
+                    </td>
+                    <td className="py-4 pr-4 text-muted-foreground">
+                      {job.requestedBy?.email || "\u2014"}
+                    </td>
+                    <td className="py-4 pr-4 text-muted-foreground whitespace-nowrap">
+                      {formatDate(job.createdAt)}
+                    </td>
+                    <td className="py-4 pr-6 text-destructive text-xs max-w-xs truncate">
+                      {job.error || "\u2014"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

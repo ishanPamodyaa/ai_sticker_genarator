@@ -44,31 +44,38 @@ export default async function HistoryPage() {
   );
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">My History</h1>
+    <div className="relative min-h-[calc(100vh-4rem)]">
+      {/* Background glowing orbs */}
+      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-[128px] -z-10 mix-blend-screen pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-violet-600/10 rounded-full blur-[128px] -z-10 mix-blend-screen pointer-events-none" />
+
+      <div className="mb-8 relative z-10">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+          My <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">History</span>
+        </h1>
         <p className="text-muted-foreground mt-2">
           Your generated sticker images
         </p>
       </div>
 
       {imagesWithUrls.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
+        <div className="glass-card rounded-2xl p-16 text-center text-muted-foreground max-w-xl mx-auto relative z-10">
           <p className="text-lg">No generated images yet.</p>
           <p className="text-sm mt-1">
             Visit the gallery and generate your first sticker!
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 relative z-10">
           {imagesWithUrls.map((image) => (
-            <Card key={image.id} className="overflow-hidden">
-              <div className="aspect-square">
+            <Card key={image.id} className="overflow-hidden glass-card border-none shadow-xl bg-gradient-to-b from-white/5 to-transparent hover:scale-[1.02] transition-transform duration-300">
+              <div className="aspect-square relative group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-violet-600/20 to-fuchsia-600/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={image.imageUrl}
                   alt="Generated sticker"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
                 />
               </div>
@@ -99,13 +106,13 @@ export default async function HistoryPage() {
 
       {/* Recent jobs section */}
       {jobs.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-lg font-semibold mb-4">Recent Generation Jobs</h2>
-          <div className="space-y-2">
+        <div className="mt-12 relative z-10 glass-card p-6 md:p-8 rounded-2xl border-none shadow-2xl bg-gradient-to-b from-white/5 to-transparent">
+          <h2 className="text-xl font-bold mb-6">Recent Generation Jobs</h2>
+          <div className="space-y-3">
             {jobs.map((job) => (
               <div
                 key={job.id}
-                className="flex items-center justify-between rounded-md border px-4 py-3 text-sm"
+                className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm hover:bg-white/10 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Badge

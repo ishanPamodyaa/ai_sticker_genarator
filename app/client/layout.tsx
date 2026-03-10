@@ -7,7 +7,6 @@ export default function ClientLayout({
 }) {
   return (
     <div className="min-h-screen">
-      <ClientHeader />
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
     </div>
   );
