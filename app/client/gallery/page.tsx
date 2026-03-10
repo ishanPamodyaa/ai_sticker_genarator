@@ -26,21 +26,29 @@ export default async function GalleryPage() {
   );
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Sticker Gallery</h1>
-        <p className="text-muted-foreground mt-2">
-          Browse AI-generated sticker designs. Click any sticker to generate your own unique variation.
+    <div className="container mx-auto px-4 py-12 relative min-h-screen">
+      {/* Background glowing orbs */}
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-[128px] -z-10 mix-blend-screen pointer-events-none" />
+      <div className="absolute bottom-1/4 left-0 w-[500px] h-[500px] bg-fuchsia-600/10 rounded-full blur-[128px] -z-10 mix-blend-screen pointer-events-none" />
+
+      <div className="mb-12 text-center max-w-2xl mx-auto">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
+          Sticker <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">Gallery</span>
+        </h1>
+        <p className="text-lg text-muted-foreground">
+          Browse AI-generated sticker designs. Click any sticker to generate your own unique variation using its style.
         </p>
       </div>
 
       {samplesWithUrls.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <p className="text-lg">No stickers available yet.</p>
-          <p className="text-sm mt-1">Check back soon or ask an admin to create templates.</p>
+        <div className="glass-card rounded-2xl p-16 text-center text-muted-foreground max-w-xl mx-auto">
+          <p className="text-xl font-medium mb-2 text-foreground">No stickers available yet.</p>
+          <p className="text-base opacity-80">Check back soon or ask an admin to create templates.</p>
         </div>
       ) : (
-        <ImageGrid images={samplesWithUrls} showGenerateButton />
+        <div className="animate-slide-up">
+          <ImageGrid images={samplesWithUrls} showGenerateButton />
+        </div>
       )}
     </div>
   );

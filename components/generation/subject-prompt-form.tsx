@@ -73,7 +73,7 @@ export function SubjectPromptForm({ sampleId }: SubjectPromptFormProps) {
         </p>
       </div>
 
-      <Button type="submit" disabled={isPending} size="lg">
+      <Button type="submit" disabled={isPending} size="lg" variant="premium" className="w-full">
         {isPending ? "Starting Generation..." : "Generate Sticker"}
       </Button>
     </form>

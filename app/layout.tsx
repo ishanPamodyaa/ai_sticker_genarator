@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const outfit = Outfit({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "AI Sticker Generator",
-  description: "Generate unique sticker images with AI",
+  title: "StickerAI - Premium AI Sticker Generator",
+  description: "Generate unique, high-quality sticker images with AI in seconds.",
 };
 
 export default function RootLayout({
@@ -23,11 +20,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${outfit.variable} font-sans antialiased min-h-screen flex flex-col text-foreground bg-background selection:bg-primary/30 selection:text-primary-foreground`}
       >
-        {children}
+        <Navbar />
+        <main className="flex-1 w-full relative">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );
