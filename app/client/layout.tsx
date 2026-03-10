@@ -1,5 +1,3 @@
-import { ClientHeader } from "@/components/layout/client-header";
-
 export default function ClientLayout({
   children,
 }: {
