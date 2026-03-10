@@ -37,7 +37,8 @@ export class VertexAIProvider implements ImageProvider {
 
   constructor(modelName?: string) {
     const config = getConfig();
-    this.modelName = modelName || "imagen-3.0-generate-002";
+    // Default to Imagen 4 if not provided
+    this.modelName = modelName || "imagen-4.0-fast-generate-001";
 
     // The client uses Application Default Credentials (ADC) or
     // GOOGLE_APPLICATION_CREDENTIALS env var pointing to a service account key
@@ -59,7 +60,7 @@ export class VertexAIProvider implements ImageProvider {
       },
     ];
 
-    const parameters: Record<string, { numberValue?: number; stringValue?: string }> = {
+    const parameters: Record<string, { numberValue?: number; stringValue?: string; boolValue?: boolean }> = {
       sampleCount: { numberValue: request.sampleCount },
     };
 
@@ -67,10 +68,14 @@ export class VertexAIProvider implements ImageProvider {
     if (this.modelName.startsWith("imagen-3")) {
       const aspectRatio = getAspectRatio(request.width, request.height);
       parameters.aspectRatio = { stringValue: aspectRatio };
-    }
-
-    if (request.negativePrompt) {
-      parameters.negativePrompt = { stringValue: request.negativePrompt };
+      
+      if (request.negativePrompt) {
+        parameters.negativePrompt = { stringValue: request.negativePrompt };
+      }
+    } else if (this.modelName.startsWith("imagen-4")) {
+      // Imagen 4 configuration
+      // Assuming similar behavior but checking known param support; generally 1:1 and standard output format
+      // the base schema for fast-generate requires sampleCount + prompt
     }
 
     // Add any extra config from template
