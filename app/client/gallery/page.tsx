@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/lib/storage";
-import { ImageGrid } from "@/components/images/image-grid";
+import { GalleryView } from "./gallery-view";
 
 export default async function GalleryPage() {
   const storage = getStorage();
@@ -25,6 +25,23 @@ export default async function GalleryPage() {
     }))
   );
 
+  // Group by template name
+  const groupedSamples = samplesWithUrls.reduce((acc, sample) => {
+    const templateName = sample.template?.name || "Uncategorized";
+    if (!acc[templateName]) {
+      acc[templateName] = [];
+    }
+    acc[templateName].push(sample);
+    return acc;
+  }, {} as Record<string, typeof samplesWithUrls>);
+
+  // Sort categories alphabetically
+  const sortedCategories = Object.keys(groupedSamples).sort((a, b) => {
+    if (a === "Uncategorized") return 1;
+    if (b === "Uncategorized") return -1;
+    return a.localeCompare(b);
+  });
+
   return (
     <div className="container mx-auto px-4 py-12 relative min-h-screen">
       {/* Background glowing orbs */}
@@ -36,7 +53,7 @@ export default async function GalleryPage() {
           Sticker <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">Gallery</span>
         </h1>
         <p className="text-lg text-muted-foreground">
-          Browse AI-generated sticker designs. Click any sticker to generate your own unique variation using its style.
+          Browse AI-generated sticker designs. Select a style via the dropdown and click any sticker to generate your own unique variation.
         </p>
       </div>
 
@@ -46,9 +63,7 @@ export default async function GalleryPage() {
           <p className="text-base opacity-80">Check back soon or ask an admin to create templates.</p>
         </div>
       ) : (
-        <div className="animate-slide-up relative z-10">
-          <ImageGrid images={samplesWithUrls} showGenerateButton />
-        </div>
+        <GalleryView groupedSamples={groupedSamples} sortedCategories={sortedCategories} />
       )}
     </div>
   );

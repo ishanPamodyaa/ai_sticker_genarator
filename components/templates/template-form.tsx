@@ -42,6 +42,19 @@ export function TemplateForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [isPending, setIsPending] = useState(false);
 
+  const [provider, setProvider] = useState(defaultValues?.provider ?? "mock");
+  const [modelName, setModelName] = useState(defaultValues?.modelName ?? "mock-v1");
+
+  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newProvider = e.target.value;
+    setProvider(newProvider);
+    if (newProvider === "vertex-imagen" && (!modelName || modelName.startsWith("mock"))) {
+      setModelName("imagen-4.0-generate-001");
+    } else if (newProvider === "mock" && (!modelName || modelName.startsWith("imagen"))) {
+      setModelName("mock-v1");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -145,7 +158,8 @@ export function TemplateForm({
           <Select
             id="provider"
             name="provider"
-            defaultValue={defaultValues?.provider ?? "mock"}
+            value={provider}
+            onChange={handleProviderChange}
             error={!!fieldErrors.provider}
           >
             {PROVIDER_OPTIONS.map((opt) => (
@@ -166,7 +180,8 @@ export function TemplateForm({
           <Input
             id="modelName"
             name="modelName"
-            defaultValue={defaultValues?.modelName ?? "mock-v1"}
+            value={modelName}
+            onChange={(e) => setModelName(e.target.value)}
             placeholder="e.g. mock-v1"
             error={!!fieldErrors.modelName}
           />

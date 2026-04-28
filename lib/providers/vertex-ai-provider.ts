@@ -1,4 +1,3 @@
-import { v1 } from "@google-cloud/aiplatform";
 import type {
   ImageProvider,
   GenerationRequest,
@@ -6,121 +5,99 @@ import type {
   GeneratedImage,
 } from "./types";
 
-const { PredictionServiceClient } = v1;
-
-interface VertexAIConfig {
-  projectId: string;
-  location: string;
-  /** e.g. "imagen-3.0-generate-002" or "imagegeneration@006" */
-  modelName: string;
-}
-
-function getConfig(): VertexAIConfig {
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT;
-  const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
-
-  if (!projectId) {
-    throw new Error(
-      "GOOGLE_CLOUD_PROJECT environment variable is required for Vertex AI provider"
-    );
-  }
-
-  return { projectId, location, modelName: "" };
-}
-
+/**
+ * Google AI Imagen provider using the Gemini REST API with an API key.
+ * Supports Imagen 3 and Imagen 4 model families.
+ *
+ * Docs: https://ai.google.dev/gemini-api/docs/imagen
+ */
 export class VertexAIProvider implements ImageProvider {
   readonly providerName = "vertex-imagen";
   readonly modelName: string;
 
-  private client: InstanceType<typeof PredictionServiceClient>;
-  private endpoint: string;
+  private apiKey: string;
 
   constructor(modelName?: string) {
-    const config = getConfig();
-    // Default to Imagen 4 if not provided
-    this.modelName = modelName || "imagen-4.0-fast-generate-001";
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        "GEMINI_API_KEY environment variable is required for Imagen provider"
+      );
+    }
 
-    // The client uses Application Default Credentials (ADC) or
-    // GOOGLE_APPLICATION_CREDENTIALS env var pointing to a service account key
-    this.client = new PredictionServiceClient({
-      apiEndpoint: `${config.location}-aiplatform.googleapis.com`,
-    });
-
-    this.endpoint = `projects/${config.projectId}/locations/${config.location}/publishers/google/models/${this.modelName}`;
+    this.apiKey = apiKey;
+    const defaultModel = "imagen-4.0-generate-001";
+    if (!modelName || modelName.toLowerCase() === "imagen") {
+      this.modelName = defaultModel;
+    } else {
+      this.modelName = modelName;
+    }
   }
 
   async generate(request: GenerationRequest): Promise<GenerationResult> {
-    const instances = [
-      {
-        structValue: {
-          fields: {
-            prompt: { stringValue: request.prompt },
-          },
-        },
-      },
-    ];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:predict`;
 
-    const parameters: Record<string, { numberValue?: number; stringValue?: string; boolValue?: boolean }> = {
-      sampleCount: { numberValue: request.sampleCount },
+    const parameters: Record<string, unknown> = {
+      sampleCount: request.sampleCount,
+      aspectRatio: getAspectRatio(request.width, request.height),
     };
 
-    // Imagen 3 uses aspectRatio instead of width/height
-    if (this.modelName.startsWith("imagen-3")) {
-      const aspectRatio = getAspectRatio(request.width, request.height);
-      parameters.aspectRatio = { stringValue: aspectRatio };
-      
-      if (request.negativePrompt) {
-        parameters.negativePrompt = { stringValue: request.negativePrompt };
-      }
-    } else if (this.modelName.startsWith("imagen-4")) {
-      // Imagen 4 configuration
-      // Assuming similar behavior but checking known param support; generally 1:1 and standard output format
-      // the base schema for fast-generate requires sampleCount + prompt
+    // negativePrompt is only supported by Imagen 3, not Imagen 4
+    if (request.negativePrompt && !this.modelName.startsWith("imagen-4")) {
+      parameters.negativePrompt = request.negativePrompt;
     }
 
-    // Add any extra config from template
+    // Merge any extra config from template
     if (request.configJson) {
-      for (const [key, value] of Object.entries(request.configJson)) {
-        if (typeof value === "number") {
-          parameters[key] = { numberValue: value };
-        } else if (typeof value === "string") {
-          parameters[key] = { stringValue: value };
-        }
-      }
+      Object.assign(parameters, request.configJson);
     }
 
-    const parametersValue = {
-      structValue: {
-        fields: Object.fromEntries(
-          Object.entries(parameters).map(([k, v]) => [k, v])
-        ),
-      },
+    const body = {
+      instances: [{ prompt: request.prompt }],
+      parameters,
     };
 
-    const [response] = await this.client.predict({
-      endpoint: this.endpoint,
-      instances,
-      parameters: parametersValue,
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": this.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Imagen API error (${res.status}): ${text}`);
+    }
+
+    const data = (await res.json()) as {
+      predictions?: Array<{
+        bytesBase64Encoded?: string;
+        mimeType?: string;
+        raiFilteredReason?: string;
+      }>;
+    };
 
     const images: GeneratedImage[] = [];
 
-    if (response.predictions) {
-      for (const prediction of response.predictions) {
-        const fields = prediction.structValue?.fields;
-        if (!fields) continue;
+    if (data.predictions) {
+      for (const prediction of data.predictions) {
+        if (prediction.raiFilteredReason) {
+          console.warn(
+            `[imagen] Image filtered: ${prediction.raiFilteredReason}`
+          );
+          continue;
+        }
 
-        const b64Data = fields.bytesBase64Encoded?.stringValue;
+        const b64Data = prediction.bytesBase64Encoded;
         if (!b64Data) continue;
 
-        const imageBuffer = Buffer.from(b64Data, "base64");
-
         images.push({
-          imageBuffer,
+          imageBuffer: Buffer.from(b64Data, "base64"),
           mimeType: "image/png",
-          seed: fields.seed?.stringValue ?? undefined,
           metadata: {
-            mimeType: fields.mimeType?.stringValue ?? "image/png",
+            mimeType: prediction.mimeType ?? "image/png",
           },
         });
       }
@@ -128,7 +105,7 @@ export class VertexAIProvider implements ImageProvider {
 
     if (images.length === 0) {
       throw new Error(
-        "Vertex AI returned no images. The prompt may have been blocked by safety filters."
+        "Imagen returned no images. The prompt may have been blocked by safety filters."
       );
     }
 
@@ -141,7 +118,7 @@ export class VertexAIProvider implements ImageProvider {
 }
 
 /**
- * Convert pixel dimensions to the closest supported Imagen 3 aspect ratio.
+ * Convert pixel dimensions to the closest supported aspect ratio.
  * Supported: "1:1", "9:16", "16:9", "3:4", "4:3"
  */
 function getAspectRatio(width: number, height: number): string {

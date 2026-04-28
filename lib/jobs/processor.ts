@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getProvider } from "@/lib/providers";
 import { getStorage } from "@/lib/storage";
 import { buildFullPrompt } from "@/lib/utils";
+import { PROMPT_SUFFIX } from "@/lib/constants";
 
 export async function processJob(jobId: string): Promise<void> {
   const job = await prisma.generationJob.findUniqueOrThrow({
@@ -22,13 +23,14 @@ export async function processJob(jobId: string): Promise<void> {
     const isSampleBatch = job.jobType === "SAMPLE_BATCH";
     const sampleCount = isSampleBatch ? job.template.sampleCount : 1;
 
-    // Build the prompt: for samples use basePrompt directly,
-    // for client generation prepend basePrompt + subject
-    const prompt = isSampleBatch
+    // Build the prompt and always append required style keywords
+    const basePrompt = isSampleBatch
       ? job.template.basePrompt
       : job.subjectPrompt
         ? buildFullPrompt(job.template.basePrompt, job.subjectPrompt)
         : job.template.basePrompt;
+
+    const prompt = `${basePrompt}, ${PROMPT_SUFFIX}`;
 
     const result = await provider.generate({
       prompt,
